@@ -2,7 +2,15 @@ import fs from 'node:fs'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import electron from 'vite-plugin-electron/simple'
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import Inspect from 'vite-plugin-inspect'
 import pkg from './package.json'
+import path from 'path'
+const pathSrc = path.resolve(__dirname, 'src')
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
@@ -13,8 +21,37 @@ export default defineConfig(({ command }) => {
   const sourcemap = isServe || !!process.env.VSCODE_DEBUG
 
   return {
+    resolve: {
+      alias: {
+        '@': pathSrc,
+      },
+    },
     plugins: [
       vue(),
+      AutoImport({
+        imports: ['vue'],
+        resolvers: [
+          ElementPlusResolver(), 
+          // Auto import icon components
+          // 自动导入图标组件
+          IconsResolver({
+            prefix: 'Icon',
+          }),],
+          dts: path.resolve(pathSrc, 'auto-imports.d.ts'),
+      }),
+      Components({
+        resolvers: [
+          ElementPlusResolver(),
+          // 自动注册图标组件
+          IconsResolver({
+            enabledCollections: ['ep'],
+          }),],
+          dts: path.resolve(pathSrc, 'components.d.ts'),
+      }),
+      Icons({
+        autoInstall: true,
+      }),
+      Inspect(),
       electron({
         main: {
           // Shortcut of `build.lib.entry`
@@ -59,7 +96,7 @@ export default defineConfig(({ command }) => {
         // Ployfill the Electron and Node.js API for Renderer process.
         // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
         // See 👉 https://github.com/electron-vite/vite-plugin-electron-renderer
-        renderer: {},
+        renderer: {}
       }),
     ],
     server: process.env.VSCODE_DEBUG && (() => {
